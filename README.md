@@ -30,6 +30,26 @@ The application uses a microservices architecture:
 
 > **📂 Note:** All screenshots and architecture diagrams referenced in this documentation are stored in the [`Screenshot`](./Screenshots/) folder.
 ---
+
+## 📂 Project Structure
+
+```text
+
+├── kind-cluster/
+│   ├── config.yml               # Kind cluster configuration
+│   ├── install_kind.sh          # Script to install Kind
+│   ├── install_kubectl.sh       # Script to install Kubectl
+│   └── dashboard-adminuser.yml  # Dashboard user config
+├── k8s-specifications/          # Kubernetes Manifests for the App
+│   ├── vote-deployment.yaml
+│   ├── result-deployment.yaml
+│   ├── redis-deployment.yaml
+│   ├── postgres-deployment.yaml
+│   └── worker-deployment.yaml
+├── Screenshots/                 # Project images
+└── README.md
+````
+
 ---
 
 ## 🏗️ Architecture
@@ -82,7 +102,7 @@ chmod +x install_kubectl.sh
 
 ```bash
 git clone https://github.com/Vaibhav0643/project_k8s-voting-app.git
-cd /project_k8s-voting-app
+cd ./project_k8s-voting-app
 ```
 
 ### 2\. Set up the Kubernetes Cluster
@@ -126,11 +146,12 @@ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
 **Step 2: Port Forwarding**
 
 ```bash
+# Listen on port 8443
 kubectl port-forward service/argocd-server -n argocd 8443:443 --address=0.0.0.0 &
 ```
 
 *You can now access ArgoCD at `http://<EC2 Public IP>:<NodePort>`.*  
-> **Note:** You have to expose port 8443 in inbound rules of the security group.
+> **⚠️ Security Group Note:** Ensure port **8443** is allowed in your AWS Security Group Inbound Rules.
 
 ### 5\. Login to ArgoCD
 
@@ -150,8 +171,7 @@ kubectl port-forward service/argocd-server -n argocd 8443:443 --address=0.0.0.0 
       * **Application Name:** `voting-app`
       * **Project:** `default`
       * **Sync Policy:** `Automatic` (Enables auto sync/auto-deployment)
-      * Enable `PRUNE RESOURCES` : Delete old resources
-      * Enable `SELF HEAL` : Create Pods if deleted manually or crashed
+      * **Options:** Check `PRUNE RESOURCES` and `SELF HEAL`
       * **Repository URL:** `https://github.com/Vaibhav0643/project_k8s-voting-app.git`
       * **Revision** : `main`
       * **Path:** `k8s-specifications` (or root `./` if manifests are in root)
@@ -170,59 +190,102 @@ Once synced, check the running services:
 ```bash
 kubectl get svc
 ```
-Test the Auto-sync:  
-* Increase the no. of replica for result app in 
+**Test Auto-sync:**
+1. Increase the no. of replica for result app in 
 [result-deployment.yaml](/k8s-specifications/result-deployment.yaml/)
-* Commit the changes from GitHub.
-* Check the Replica of result app in ArgoCD UI. It will show 3 replicas of result.
+2. Commit changes to GitHub.
+3. Observe ArgoCD automatically syncing the new state to the cluster in the ArgoCD UI.
 
 > **📂 Note:** All screenshots and architecture diagrams referenced in this documentation are stored in the [`Screenshot`](./Screenshots/) folder.
 
+**Access the Application:**
 
-You can access the application via port forwarding:
+  * **Vote App (Python):**
 
-* **Vote App (Python):**
+    ```bash
+    kubectl port-forward svc/vote 5000:5000 --address=0.0.0.0 &
+    # Open http://<EC2 Public IP>:5000
+    ```
 
-  ```bash
-  kubectl port-forward svc/vote 5000:5000 &
-  # Open http://<EC2 Public IP>:5000
-  ```
+  * **Result App (Node.js):**
 
-* **Result App (Node.js):**
+    ```bash
+    kubectl port-forward svc/result 5001:5001 --address=0.0.0.0 &
+    # Open http://<EC2 Public IP>:5001
+    ```
 
-  ```bash
-  kubectl port-forward svc/result 5001:5001 &
-  # Open http://<EC2 Public IP>:5001
-  ```
-> **Note:** You have to expose port 5000 & 5001 in inbound rules of the security group.
+> **⚠️ Security Group Note:** Ensure ports **5000** & **5001** are allowed in your AWS Security Group.
 
-## Installing Kubernetes Dashboard
+-----
 
-- Deploy Kubernetes dashboard:
-  ```bash
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+## 📊 Kubernetes Dashboard Setup
 
-  cd kind-cluster
-  kubctl apply -f kind-cluster\dashboard-adminuser.yml
-  ```
+**1. Deploy Dashboard**
 
-- Create a token for dashboard access:
-  ```bash
-  kubectl -n kubernetes-dashboard create token admin-user
-  # Copy this token
-  ```
-- Access the Kubernetes Dashboard using port forwarding:
-  ```bash
-  kubectl port-forward svc/vote -n kubernetes-dashboard 8080:443 &
-  # Open http://<EC2 Public IP>:8080
-  # Paste token
-  ```
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+```
+
+**2. Create Admin User**
+
+```bash
+cd kind-cluster
+kubectl apply -f dashboard-adminuser.yml
+```
+
+**3. Create Token**
+
+```bash
+kubectl -n kubernetes-dashboard create token admin-user
+# Copy this token for login
+```
+
+**4. Access Dashboard**
+
+```bash
+kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8080:443 --address=0.0.0.0 &
+# Open `https://<EC2 Public IP>:8080` and paste the token.
+```
+
 > **Note:** You have to expose port 8080 in inbound rules of the security group.
-
 
 ---
 
+## 🗑️ Clean Up
+To stop the cluster and save resources:
 
+```bash
+kind delete cluster --name voting-app-cluster
+# Or terminate the EC2 instance directly from AWS Console
+```
+
+---
+## 📄 Resume Entry
+
+### **Project Title:**
+
+**Automated Deployment of Scalable Applications on AWS EC2 with Kubernetes and Argo CD**
+
+### **Description:**
+
+Designed and deployed a microservices-based Voting Application on AWS EC2. Implemented a GitOps workflow using Argo CD to automate application synchronization and self-healing.
+
+### **Key Technologies:**
+
+  * **Infrastructure:** AWS EC2, Docker, Kind
+  * **Orchestration:** Kubernetes (K8s)
+  * **CI/CD:** Argo CD (GitOps)
+  * **Monitoring:** Kubernetes Dashboard
+
+### **Achievements:**
+
+* Reduced deployment time by automating manifest synchronization via Argo CD.
+* Configured Ingress traffic and port-forwarding for secure external access.
+* Managed multi-container microservices (Python, Node.js, Redis, Postgres, .NET).
+
+-----
+
+--- 
 ## 🤝 Contributing
 
 1.  Fork the Project
@@ -230,3 +293,5 @@ You can access the application via port forwarding:
 3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4.  Push to the Branch (`git push origin feature/AmazingFeature`)
 5.  Open a Pull Request
+
+
