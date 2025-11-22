@@ -81,8 +81,8 @@ chmod +x install_kubectl.sh
 ### 1\. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/k8s-kind-voting-app.git
-cd k8s-kind-voting-app
+git clone https://github.com/Vaibhav0643/project_k8s-voting-app.git
+cd /project_k8s-voting-app
 ```
 
 ### 2\. Set up the Kubernetes Cluster
@@ -152,7 +152,7 @@ kubectl port-forward service/argocd-server -n argocd 8443:443 --address=0.0.0.0 
       * **Sync Policy:** `Automatic` (Enables auto sync/auto-deployment)
       * Enable `PRUNE RESOURCES` : Delete old resources
       * Enable `SELF HEAL` : Create Pods if deleted manually or crashed
-      * **Repository URL:** `https://github.com/YOUR_USERNAME/k8s-kind-voting-app`
+      * **Repository URL:** `https://github.com/Vaibhav0643/project_k8s-voting-app.git`
       * **Revision** : `main`
       * **Path:** `k8s-specifications` (or root `./` if manifests are in root)
       * **Cluster URL:** `https://kubernetes.default.svc`
